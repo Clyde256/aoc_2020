@@ -15,9 +15,7 @@ namespace AOC.Day03
             {
                 if (pos.Item1 >= map.Rows) break;
                 var val = map.Value(pos.Item1, pos.Item2);
-                
                 //Console.WriteLine(string.Format("[{0}, {1}] {2}", pos.Item1, pos.Item2, val));
-
                 if (val == '#') treeCnt++;
                 pos.Item1 += slope.Item1;
                 pos.Item2 += slope.Item2;
