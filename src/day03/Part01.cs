@@ -6,7 +6,7 @@ namespace AOC.Day03
 {
     public static class Part01
     {
-        private static int CountTree(Map2D map, (int, int) slope)
+        public static int CountTree(Map2D map, (int, int) slope)
         {
             var pos = (0, 0);
             var treeCnt = 0;
@@ -24,25 +24,21 @@ namespace AOC.Day03
             return treeCnt;
         }
 
-        public static void Run()
+        public static Map2D LoadMap()
         {
             var filePath = InputPath.ForExe("./day03/input.txt");
             var map = new Map2D();
             map.Load(filePath);
             map.Print();
+            
+            return map;
+        }
 
-            var slopes = new List<(int, int)>{ (1, 1), (1, 3), (1, 5), (1, 7), (2, 1) };
-
-            long res = 1;
-
-            foreach (var it in slopes) 
-            {
-                var cnt = CountTree(map, it);
-                res *= cnt;
-                Console.WriteLine(cnt);
-            }
-
-            Console.WriteLine(res);
+        public static void Run()
+        {
+            var map = LoadMap();
+            var count = CountTree(map, (1, 3));
+            Console.WriteLine(count);
         }
     }
 }
