@@ -48,6 +48,37 @@ namespace AOC.Tools
             return list;
         }
 
+        public List<List<string>> ReadAllGroups()
+        {
+            var list = new List<List<string>>();
+            var group = new List<string>();
+
+            using StreamReader sr = File.OpenText(FilePath);
+            
+            string line = "";
+
+            while ((line = sr.ReadLine()) != null)
+            {
+                if (line == "")
+                {
+                    var tmp = new List<string>();
+                    tmp.AddRange(group);
+                    list.Add(tmp);
+                    group.Clear();
+                    continue;
+                }
+
+                group.Add(line);
+            }
+
+            if (group.Count > 0)
+            {
+                list.Add(group);
+            }
+
+            return list;
+        }
+
         public List<int> ReadAllInt()
         {
             var list = new List<int>();
