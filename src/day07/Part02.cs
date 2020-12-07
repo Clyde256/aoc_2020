@@ -7,11 +7,11 @@ using AOC.Tools;
 
 namespace AOC.Day07
 {
-    public static class Part01
+    public static class Part02
     {
-        public static Dictionary<string, List<String>> GetDictionary(List<string> data)
+        public static Dictionary<string, List<(String, int)>> GetDictionary(List<string> data)
         {
-            var dic = new Dictionary<string, List<String>>();
+            var dic = new Dictionary<string, List<(string, int)>>();
 
             foreach(var it in data)
             {
@@ -22,7 +22,7 @@ namespace AOC.Day07
                 key = key.Replace(" bag", "");
 
                 var lst = tmp[1].Split(", ");
-                var keys = new List<string>();
+                var keys = new List<(string, int)>();
 
                 for (var i = 0; i < lst.Count(); i++)
                 {
@@ -33,13 +33,21 @@ namespace AOC.Day07
 
                     if (lst[i] == "no other bags")
                     {
-                        keys.Add(txt);
+                        // keys.Add((txt, 0));
                     }
                     else
                     {
                         var pos = txt.IndexOf(' ');
+
+                        var cnt = 0;
+                        var num = txt.Substring(0, pos);
+                        Int32.TryParse(num, out cnt);
+
                         txt = txt.Substring(pos + 1);
-                        keys.Add(txt);
+                        if (txt != "other")
+                        {
+                            keys.Add((txt, cnt));
+                        }
                     }
                 }
 
@@ -49,19 +57,20 @@ namespace AOC.Day07
             return dic;
         }
 
-        public static void CountColors(Dictionary<string, List<String>> dic, string color, ref HashSet<string> counted)
+        public static int CountColors(Dictionary<string, List<(String, int)>> dic, string color)
         {
-            if (color == "other") return;
             var items = dic[color];
+
+            int count = 0;
 
             foreach(var it in items)
             {
-                if (it == "other") continue;
-
-                if (counted.Contains(it)) continue;
-                counted.Add(it);
-                CountColors(dic, it, ref counted);
+                var cnt = CountColors(dic, it.Item1);
+                count += it.Item2;
+                count += it.Item2 * cnt;
             }
+
+            return count;
         }
 
         public static void Run()
@@ -69,19 +78,10 @@ namespace AOC.Day07
             var reader = FileIO.CreateProjFilePath("./day07/input.txt");
             var list = reader.ReadAll();
             
-            var dic = GetDictionary(list);
-
             var init = "shiny gold";
-            var initCount = 0;
-
-            foreach(var it in dic)
-            {
-                var colors = new HashSet<string>();
-                CountColors(dic, it.Key, ref colors);
-                if (colors.Contains(init)) initCount++;
-            }
-
-            Console.WriteLine(initCount);
+            var dic = GetDictionary(list);
+            var count = CountColors(dic, init);
+            Console.WriteLine(count);
         }
     }
 }
