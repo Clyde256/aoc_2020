@@ -34,6 +34,14 @@ namespace AOC.Day16
                 var range = new Range(min, max);
                 return range;
             }
+
+            public void FillSet(ref HashSet<int> set)
+            {
+                for (var i = Min; i <= Max; i++)
+                {
+                    set.Add(i);
+                }
+            }
         }
 
         public class Item
@@ -65,13 +73,19 @@ namespace AOC.Day16
 
                 return item;
             }
+
+            public void FillSet(ref HashSet<int> set)
+            {
+                RangeA.FillSet(ref set);
+                RangeB.FillSet(ref set);
+            }
         }
 
         static void Parse(List<string> data, out List<Item> items, out List<int> myTicket, out List<List<int>> nearbyTickets)
         {
             items = new List<Item>();
 
-            while(data.Count > 0)
+            while (data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -85,7 +99,7 @@ namespace AOC.Day16
 
             myTicket = new List<int>();
 
-            while(data.Count > 0)
+            while (data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -98,7 +112,7 @@ namespace AOC.Day16
 
             nearbyTickets = new List<List<int>>();
 
-            while(data.Count > 0)
+            while (data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -115,11 +129,11 @@ namespace AOC.Day16
         {
             var invalidSum = 0;
 
-            foreach(var val in values)
+            foreach (var val in values)
             {
                 var validCount = 0;
 
-                foreach(var it in items)
+                foreach (var it in items)
                 {
                     if (!it.IsValid(val)) continue;
                     validCount++;
@@ -150,11 +164,11 @@ namespace AOC.Day16
         {
             var valid = new List<List<Item>>();
 
-            foreach(var val in ticket)
+            foreach (var val in ticket)
             {
-                var validItems  = new List<Item>();
+                var validItems = new List<Item>();
 
-                foreach(var it in items)
+                foreach (var it in items)
                 {
                     if (!it.IsValid(val)) continue;
                     validItems.Add(it);
@@ -168,7 +182,7 @@ namespace AOC.Day16
 
         static void ReduceInvalid(List<int> ticket, ref List<List<Item>> itemsComb)
         {
-            for(var i = 0; i < ticket.Count; i++)
+            for (var i = 0; i < ticket.Count; i++)
             {
                 var val = ticket[i];
                 var comb = itemsComb[i];
@@ -176,14 +190,14 @@ namespace AOC.Day16
                 var tmp = comb.Count;
                 var vld = 0;
 
-                for(var j = comb.Count - 1; j >= 0; j--)
+                for (var j = comb.Count - 1; j >= 0; j--)
                 {
                     if (comb[j].IsValid(val))
                     {
                         vld++;
                         continue;
                     }
-                    
+
                     comb.RemoveAt(j);
                 }
 
@@ -196,47 +210,87 @@ namespace AOC.Day16
             }
         }
 
-        static bool Check(List<int> ticket, List<List<Item>> variants)
-        {
-            for (var i = 0; i < ticket.Count; i++)
-            {       
-                bool valid = false;
-
-                foreach(var it in variants[i])
-                {
-                    if (it.IsValid(ticket[i])) 
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
-
-                if (!valid) return false;
-            }
-
-            return true;
-        }
-
-        public static void Run()
+        static void Data(out List<HashSet<int>> sets, out List<HashSet<int>> mask)
         {
             var reader = FileIO.CreateProjFilePath("./day16/input.txt");
             var data = reader.ReadAll();
 
-            List<Item> items;
             List<int> myTicket;
+            List<Item> items;
             List<List<int>> nearbyTickets;
             Parse(data, out items, out myTicket, out nearbyTickets);
 
-            for(var i = nearbyTickets.Count - 1; i >= 0; i--)
+            nearbyTickets.Insert(0, myTicket);
+
+            mask = new List<HashSet<int>>();
+
+            for (var i = 0; i < myTicket.Count; i++)
             {
-                var ticket = nearbyTickets[i];
-                var invalid = InvalidSum(items, ticket);
-                if (invalid > 0) nearbyTickets.Remove(ticket);
+                var set = new HashSet<int>();
+
+                foreach (var it in nearbyTickets)
+                {
+                    set.Add(it[i]);
+                }
+
+                mask.Add(set);
             }
 
-            var variants = Valid(myTicket, items);
+            sets = new List<HashSet<int>>();
 
-            Console.WriteLine();
+            foreach(var it in items)
+            {
+                var set = new HashSet<int>();
+                it.FillSet(ref set);
+                sets.Add(set);
+            }
+        }
+
+        static IEnumerable<IEnumerable<T>> GetPermutations<T>(IEnumerable<T> list, int length)
+        {
+            if (length == 1) return list.Select(t => new T[] { t });
+
+            return GetPermutations(list, length - 1)
+                .SelectMany(t => list.Where(e => !t.Contains(e)),
+                    (t1, t2) => t1.Concat(new T[] { t2 }));
+        }
+
+        static void Probably(ref List<List<HashSet<int>>> sets, ref List<HashSet<int>> tickets)
+        {
+            
+        }
+
+        public static void Run()
+        {
+            List<HashSet<int>> items;
+            List<HashSet<int>> tickets;
+            Data(out items, out tickets);
+            var perm = GetPermutations<HashSet<int>>(items, items.Count);
+
+            var tmp = new List<List<HashSet<int>>>();
+
+            foreach(var it in perm)
+            {
+                var conf = it.ToArray();
+
+                bool isSubset = true;
+
+                for (var i = 0; i < conf.Count(); i++)
+                {
+                    if (!tickets[i].IsSubsetOf(conf[i]))
+                    {
+                        isSubset = false;
+                    }
+                }
+
+                if (isSubset)
+                {
+                    Console.WriteLine("FOUND SUBSET");
+                    return;
+                }
+            }
+
+            Console.WriteLine("DONE");
         }
     }
 }
