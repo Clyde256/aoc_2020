@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using AOC.Tools;
 
@@ -34,14 +33,6 @@ namespace AOC.Day16
                 var range = new Range(min, max);
                 return range;
             }
-
-            public void FillSet(ref HashSet<int> set)
-            {
-                for (var i = Min; i <= Max; i++)
-                {
-                    set.Add(i);
-                }
-            }
         }
 
         public class Item
@@ -73,19 +64,64 @@ namespace AOC.Day16
 
                 return item;
             }
-
-            public void FillSet(ref HashSet<int> set)
-            {
-                RangeA.FillSet(ref set);
-                RangeB.FillSet(ref set);
-            }
         }
 
-        static void Parse(List<string> data, out List<Item> items, out List<int> myTicket, out List<List<int>> nearbyTickets)
+        public class Ticket
+        {
+            public List<int> Values;
+
+            public static Ticket Create(string str)
+            {
+                var res = new Ticket();
+                res.Values = Collections.ToIntList(str, ',');
+                return res;
+            }
+
+            public void Print()
+            {
+                var str = "";
+                foreach(var it in Values)
+                {
+                    str += it.ToString() + ", ";
+                }
+
+                str.TrimEnd(' ');
+                str.TrimEnd(',');
+
+                Console.WriteLine(str);
+            }
+
+            public long InvalidSum(List<Item> items)
+            {
+                long invalid = 0;
+
+                foreach(var val in Values)
+                {
+                    bool isValid = false;
+
+                    foreach(var it in items)
+                    {
+                        if (!it.IsValid(val)) continue;
+                        isValid = true;
+                        break;
+                    }
+
+                    if (isValid) continue;
+                    invalid += val;
+                }
+
+                return invalid;
+            }
+
+            public int Count { get { return Values.Count; } }
+        }
+
+        static void Parse(List<string> data, out List<Item> items, out List<Ticket> tickets)
         {
             items = new List<Item>();
+            tickets = new List<Ticket>();
 
-            while (data.Count > 0)
+            while(data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -97,9 +133,7 @@ namespace AOC.Day16
                 items.Add(item);
             }
 
-            myTicket = new List<int>();
-
-            while (data.Count > 0)
+            while(data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -107,12 +141,11 @@ namespace AOC.Day16
                 if (row == "") break;
                 if (row.Contains(':')) continue;
 
-                myTicket = Collections.ToIntList(row, ',');
+                var tck = Ticket.Create(row);
+                tickets.Add(tck);
             }
 
-            nearbyTickets = new List<List<int>>();
-
-            while (data.Count > 0)
+            while(data.Count > 0)
             {
                 var row = data[0];
                 data.RemoveAt(0);
@@ -120,177 +153,137 @@ namespace AOC.Day16
                 if (row == "") break;
                 if (row.Contains(':')) continue;
 
-                var ticket = Collections.ToIntList(row, ',');
-                nearbyTickets.Add(ticket);
+                var tck = Ticket.Create(row);
+                tickets.Add(tck);
             }
         }
 
-        static int InvalidSum(List<Item> items, List<int> values)
-        {
-            var invalidSum = 0;
-
-            foreach (var val in values)
-            {
-                var validCount = 0;
-
-                foreach (var it in items)
-                {
-                    if (!it.IsValid(val)) continue;
-                    validCount++;
-                }
-
-                if (validCount <= 0)
-                {
-                    invalidSum += val;
-                }
-            }
-
-            return invalidSum;
-        }
-
-        static bool IsValid(List<int> ticker, List<Item> items)
-        {
-            if (ticker.Count != items.Count) return false;
-
-            for (var i = 0; i < ticker.Count; i++)
-            {
-                if (!items[i].IsValid(ticker[i])) return false;
-            }
-
-            return true;
-        }
-
-        static List<List<Item>> Valid(List<int> ticket, List<Item> items)
-        {
-            var valid = new List<List<Item>>();
-
-            foreach (var val in ticket)
-            {
-                var validItems = new List<Item>();
-
-                foreach (var it in items)
-                {
-                    if (!it.IsValid(val)) continue;
-                    validItems.Add(it);
-                }
-
-                valid.Add(validItems);
-            }
-
-            return valid;
-        }
-
-        static void ReduceInvalid(List<int> ticket, ref List<List<Item>> itemsComb)
-        {
-            for (var i = 0; i < ticket.Count; i++)
-            {
-                var val = ticket[i];
-                var comb = itemsComb[i];
-
-                var tmp = comb.Count;
-                var vld = 0;
-
-                for (var j = comb.Count - 1; j >= 0; j--)
-                {
-                    if (comb[j].IsValid(val))
-                    {
-                        vld++;
-                        continue;
-                    }
-
-                    comb.RemoveAt(j);
-                }
-
-                if (vld <= 0 && comb.Count > 0)
-                {
-                    Console.WriteLine();
-                }
-
-                Console.WriteLine();
-            }
-        }
-
-        static void Data(out List<HashSet<int>> sets, out List<HashSet<int>> mask)
+        static void ValidTickets(out List<Item> items, out List<Ticket> tickets)
         {
             var reader = FileIO.CreateProjFilePath("./day16/input.txt");
             var data = reader.ReadAll();
 
-            List<int> myTicket;
-            List<Item> items;
-            List<List<int>> nearbyTickets;
-            Parse(data, out items, out myTicket, out nearbyTickets);
+            Parse(data, out items, out tickets);
 
-            nearbyTickets.Insert(0, myTicket);
+            var valid = new List<Ticket>();
+            valid.Add(tickets[0]); // My Ticket
+            tickets.RemoveAt(0);
 
-            mask = new List<HashSet<int>>();
+            long invalidSum = 0;
 
-            for (var i = 0; i < myTicket.Count; i++)
+            foreach(var tic in tickets)
             {
-                var set = new HashSet<int>();
+                var inv = tic.InvalidSum(items);
+                if (inv == 0) valid.Add(tic);
+                invalidSum += inv;
+            }
 
-                foreach (var it in nearbyTickets)
+            tickets = valid;
+
+            Console.WriteLine(invalidSum);
+        }
+
+        static List<List<Item>> Variants(List<Item> items, int count)
+        {
+            var list = new List<List<Item>>();
+
+            for (var i = 0; i < count; i++)
+            {
+                var tmp = new List<Item>();
+
+                foreach (var it in items)
                 {
-                    set.Add(it[i]);
+                    tmp.Add(it);
                 }
 
-                mask.Add(set);
+                list.Add(tmp);
             }
 
-            sets = new List<HashSet<int>>();
+            return list;
+        }
 
-            foreach(var it in items)
+        static void Reduce(ref List<Item> options, int pos, List<Ticket> tickets)
+        {
+            for (var i = options.Count - 1; i >= 0; i--)
             {
-                var set = new HashSet<int>();
-                it.FillSet(ref set);
-                sets.Add(set);
+                var it = options[i];
+                bool isValid = true;
+
+                foreach(var tic in tickets)
+                {
+                    var value = tic.Values[pos];
+                    if (it.IsValid(value)) continue;
+                    Console.WriteLine(value.ToString() + " " + it.Name);
+                    isValid = false;
+                    break;
+                }
+
+                if (isValid) continue;
+
+                options.RemoveAt(i);
             }
         }
 
-        static IEnumerable<IEnumerable<T>> GetPermutations<T>(IEnumerable<T> list, int length)
+        static bool SubReduce(ref List<List<Item>> variants, ref Dictionary<string, int> result)
         {
-            if (length == 1) return list.Select(t => new T[] { t });
+            try
+            {
+                var idx = variants.FindIndex(x => x.Count == 1);
+                var single = variants[idx][0];
+                result.Add(single.Name, idx);
+                variants[idx].Clear();
 
-            return GetPermutations(list, length - 1)
-                .SelectMany(t => list.Where(e => !t.Contains(e)),
-                    (t1, t2) => t1.Concat(new T[] { t2 }));
-        }
+                var removed = 0;
 
-        static void Probably(ref List<List<HashSet<int>>> sets, ref List<HashSet<int>> tickets)
-        {
-            
+                foreach(var lst in variants)
+                {
+                    if (lst.Count == 1 && lst[0].Name == single.Name) continue;
+                    removed += lst.RemoveAll(x => x.Name == single.Name);
+                }
+
+                return true;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
         }
 
         public static void Run()
         {
-            List<HashSet<int>> items;
-            List<HashSet<int>> tickets;
-            Data(out items, out tickets);
-            var perm = GetPermutations<HashSet<int>>(items, items.Count);
+            List<Item> items;
+            List<Ticket> tickets;
+            ValidTickets(out items, out tickets);
 
-            var tmp = new List<List<HashSet<int>>>();
+            var myTicket = tickets[0];
 
-            foreach(var it in perm)
+            List<List<Item>> variants = Variants(items, tickets[0].Count);
+
+
+            for (var i = 0; i < tickets[0].Count; i++)
             {
-                var conf = it.ToArray();
-
-                bool isSubset = true;
-
-                for (var i = 0; i < conf.Count(); i++)
-                {
-                    if (!tickets[i].IsSubsetOf(conf[i]))
-                    {
-                        isSubset = false;
-                    }
-                }
-
-                if (isSubset)
-                {
-                    Console.WriteLine("FOUND SUBSET");
-                    return;
-                }
+                var tmp = variants[i];
+                Reduce(ref tmp, i, tickets);
+                Console.WriteLine();
             }
 
-            Console.WriteLine("DONE");
+            var res = new Dictionary<string, int>();
+
+            while(SubReduce(ref variants, ref res))
+            {
+            }
+
+            long result = 1;
+
+            foreach(var it in res)
+            {
+                if (!it.Key.Contains("departure")) continue;
+                var item = items[it.Value];
+                Console.WriteLine(it.Value);
+                result *=  myTicket.Values[it.Value];
+            }
+
+            Console.WriteLine(result);
         }
     }
 }
